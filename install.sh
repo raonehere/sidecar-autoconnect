@@ -1,63 +1,44 @@
 #!/bin/bash
 set -e
 
-REPO_USER="Ocasio-J"
-REPO_NAME="SidecarLauncher"
-
-USER_HOME="${HOME}"
-USER_NAME="$(id -un)"
-BIN_DIR="${USER_HOME}/bin"
-AGENTS_DIR="${USER_HOME}/Library/LaunchAgents"
-AGENT_DEST="${AGENTS_DIR}/com.sidecar.autoconnect.plist"
-CONNECT_SCRIPT_SRC="bin/sidecar_connect.sh"
-PLIST_TEMPLATE="launch/com.sidecar.autoconnect.plist"
+REPO_USER="raonehere"
+REPO_NAME="sidecar-autoconnect"
+BIN_DIR="${HOME}/bin"
+AGENTS_DIR="${HOME}/Library/LaunchAgents"
+CONNECT_SCRIPT="${BIN_DIR}/sidecar_connect.sh"
+PLIST_FILE="${AGENTS_DIR}/com.sidecar.autoconnect.plist"
 SIDECAR_BIN="${BIN_DIR}/SidecarLauncher"
 
-echo "Setting up folders..."
-mkdir -p "${BIN_DIR}" "${AGENTS_DIR}"
+echo "📦 Setting up Sidecar Auto Connect..."
+mkdir -p "$BIN_DIR" "$AGENTS_DIR"
 
-# 1) Get SidecarLauncher automatically if missing
-if [ ! -x "${SIDECAR_BIN}" ]; then
-  echo "Downloading SidecarLauncher..."
-  API_URL="https://api.github.com/repos/${REPO_USER}/${REPO_NAME}/releases/latest"
-  DL_URL=$(
-    curl -fsSL "$API_URL" \
-    | grep -Eo '"browser_download_url":\s*"[^"]+"' \
+# Download SidecarLauncher
+if [ ! -x "$SIDECAR_BIN" ]; then
+  echo "⬇️  Downloading SidecarLauncher..."
+  API_URL="https://api.github.com/repos/Ocasio-J/SidecarLauncher/releases/latest"
+  DL_URL=$(curl -fsSL "$API_URL" | grep -Eo '"browser_download_url":\s*"[^"]+"' \
     | sed 's/"browser_download_url":\s*"\(.*\)"/\1/' \
-    | grep -E '/releases/download/.*/SidecarLauncher$' \
-    | head -n 1
-  )
-
-  if [ -z "$DL_URL" ]; then
-    echo "Could not find download URL from GitHub API."
-    echo "Please download SidecarLauncher manually and place it at ${SIDECAR_BIN}"
-    exit 1
-  fi
-
-  curl -fL "$DL_URL" -o "${SIDECAR_BIN}.tmp"
-  mv "${SIDECAR_BIN}.tmp" "${SIDECAR_BIN}"
+    | grep -E '/SidecarLauncher$' | head -n 1)
+  curl -fL "$DL_URL" -o "$SIDECAR_BIN"
 fi
+chmod 755 "$SIDECAR_BIN" && xattr -dr com.apple.quarantine "$SIDECAR_BIN" 2>/dev/null || true
 
-chmod 755 "${SIDECAR_BIN}" 2>/dev/null || true
-xattr -dr com.apple.quarantine "${SIDECAR_BIN}" 2>/dev/null || true
+# Download wrapper script
+echo "⬇️  Downloading connector script..."
+curl -fsSL "https://raw.githubusercontent.com/${REPO_USER}/${REPO_NAME}/main/bin/sidecar_connect.sh" -o "$CONNECT_SCRIPT"
+chmod 755 "$CONNECT_SCRIPT"
 
-# 2) Install connector script
-echo "Installing connector script..."
-install -m 755 "${CONNECT_SCRIPT_SRC}" "${BIN_DIR}/sidecar_connect.sh"
+# Download and patch plist
+echo "⬇️  Downloading LaunchAgent..."
+curl -fsSL "https://raw.githubusercontent.com/${REPO_USER}/${REPO_NAME}/main/launch/com.sidecar.autoconnect.plist" \
+  | sed "s#%USER%#$(id -un)#g" > "$PLIST_FILE"
+plutil -lint "$PLIST_FILE"
 
-# 3) Install LaunchAgent from template
-echo "Installing LaunchAgent..."
-sed "s#%USER%#${USER_NAME}#g" "${PLIST_TEMPLATE}" > "${AGENT_DEST}"
-plutil -lint "${AGENT_DEST}"
-
-# 4) Load agent
-echo "Starting LaunchAgent..."
-launchctl bootout gui/$(id -u) "${AGENT_DEST}" 2>/dev/null || true
-launchctl bootstrap gui/$(id -u) "${AGENT_DEST}"
+# Enable LaunchAgent
+echo "🚀 Starting LaunchAgent..."
+launchctl bootout gui/$(id -u) "$PLIST_FILE" 2>/dev/null || true
+launchctl bootstrap gui/$(id -u) "$PLIST_FILE"
 launchctl enable gui/$(id -u)/com.sidecar.autoconnect
 launchctl kickstart -k gui/$(id -u)/com.sidecar.autoconnect
 
-echo
-echo "All set. Plug in and unlock your iPad."
-echo "To check status: launchctl print gui/\$(id -u)/com.sidecar.autoconnect | head -n 40"
-echo "Logs: tail -f /tmp/sidecarlog.err  (only if you added logging keys in the plist)"
+echo "✅ Done! Plug in and unlock your iPad."
