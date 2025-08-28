@@ -31,34 +31,35 @@ chmod 755 "$SIDECAR_BIN"
 xattr -dr com.apple.quarantine "$SIDECAR_BIN" 2>/dev/null || true
 
 # 2) Install the toggle script
-cat > "$TOGGLE_SCRIPT" <<'SH'
+cat > ~/bin/sidecar_toggle.sh <<'SH'
 #!/bin/bash
+set -e
+
+LOCK="/tmp/sidecar_hotkey.lock"
+# simple debounce: if another run is active, bail
+if [ -e "$LOCK" ] && kill -0 "$(cat "$LOCK")" 2>/dev/null; then
+  exit 0
+fi
+echo $$ > "$LOCK"
+trap 'rm -f "$LOCK"' EXIT
+
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 BIN="$HOME/bin/SidecarLauncher"
 
-# If Sidecar is running, disconnect first device
+# If Sidecar is running, disconnect ONCE
 if pgrep -x "SidecarDisplayAgent" >/dev/null 2>&1; then
   DEV="$("$BIN" devices | head -n 1)"
-  [[ -n "$DEV" ]] && "$BIN" disconnect "$DEV"
+  [ -n "$DEV" ] && exec "$BIN" disconnect "$DEV"
   exit 0
 fi
 
-# Otherwise connect, with a few retries and wired preference
-for i in {1..6}; do
-  DEV="$("$BIN" devices | head -n 1)"
-  if [[ -n "$DEV" ]]; then
-    "$BIN" connect "$DEV" -wired && exit 0
-    "$BIN" connect "$DEV" && exit 0
-  fi
-  pkill -x SidecarDisplayAgent 2>/dev/null || true
-  pkill -x SidecarRelay 2>/dev/null || true
-  sleep 5
-done
-
-osascript -e 'display notification "Could not start Sidecar. Unlock iPad, check cable/Bluetooth/Wi-Fi, same Apple ID." with title "Sidecar Hotkey"'
-exit 1
+# Not running: connect with ONE wired attempt, then ONE wireless attempt
+DEV="$("$BIN" devices | head -n 1)"
+[ -z "$DEV" ] && exit 1
+"$BIN" connect "$DEV" -wired || "$BIN" connect "$DEV"
 SH
-chmod 755 "$TOGGLE_SCRIPT"
+chmod 755 ~/bin/sidecar_toggle.sh
+
 
 # 3) Install Hammerspoon if missing (to provide a reliable global hotkey)
 if [ ! -d "$HS_APP_SYS" ] && [ ! -d "$HS_APP_USR" ]; then
