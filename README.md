@@ -1,8 +1,7 @@
 ````md
 # Sidecar Auto Connect
 
-Press one hotkey to connect or disconnect Sidecar.  
-No auto run. Beginner friendly. Works over USB or Wi Fi.
+Press one hotkey (cmnd+opt+ctrl+M) to connect or disconnect Sidecar.  Works over USB or Wi Fi.
 
 ## What it does
 - Installs a tiny toggle script that connects to the first reachable iPad
