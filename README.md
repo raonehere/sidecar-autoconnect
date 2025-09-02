@@ -5,7 +5,7 @@ Press one hotkey (cmnd+opt+ctrl+M) to connect or disconnect Sidecar.  Works over
 
 ## What it does
 - Installs a tiny toggle script that connects to the first reachable iPad
-- Sets up a global hotkey with Hammerspoon, default is Ctrl Option Command M
+- Sets up a global hotkey with Hammerspoon
 - Tries wired first, then falls back to wireless
 - No LaunchAgents, nothing runs at login
 
@@ -16,7 +16,7 @@ Paste this in Terminal
 ````
 
 During install, macOS will ask you to allow Accessibility for Hammerspoon. Approve it.
-Then press **Ctrl + Option + Command + M** to connect.
+Then press **Command + Option + Control + M** to connect.
 Press the same keys again to disconnect.
 Press again to reconnect.
 
@@ -67,10 +67,6 @@ You can also quit and delete Hammerspoon from Applications if you prefer.
    pkill -x SidecarDisplayAgent 2>/dev/null
    pkill -x SidecarRelay 2>/dev/null
    ```
-
-**My iPad name has curly quotes**
-The tool uses the first device it finds, so the name does not matter.
-If you still want to simplify, rename the iPad to a plain ASCII name like Rahul iPad.
 
 **I want a different hotkey**
 Open `~/.hammerspoon/init.lua` and change the key.
