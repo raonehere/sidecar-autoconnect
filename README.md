@@ -1,8 +1,6 @@
+A keyboard shortcut for Sidecar which will turn your iPad into a second/extended screen for your Mac.
+
 ````md
-# Sidecar Auto Connect
-
-Press one hotkey (cmnd+opt+ctrl+M) to connect or disconnect Sidecar.  Works over USB or Wi Fi.
-
 ## What it does
 - Installs a tiny toggle script that connects to the first reachable iPad
 - Sets up a global hotkey with Hammerspoon
